@@ -1,4 +1,5 @@
 using DocumentService.Api.Models;
+using DocumentService.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,7 @@ builder.Services.AddSwaggerGen();
 //Register DBContext
 
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IDocumentService, DocumentService>();
 
 var app = builder.Build();
 
