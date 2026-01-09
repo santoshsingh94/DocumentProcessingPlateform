@@ -35,5 +35,25 @@ namespace DocumentProcessing.Api.Controllers
                 return StatusCode(500, new { error = "An unexpected error occurred." });
             }
         }
+
+        [HttpGet("{id}/download")]
+        public async Task<IActionResult> Download(Guid id)
+        {
+            try
+            {
+                var (filePath, contentType, fileName) = await _documentService.GetDocumentFileAsync(id);
+                var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+                return File(fileBytes, contentType, fileName);
+            }
+            catch (FileNotFoundException ex)
+            {
+                return NotFound(new { error = ex.Message });
+            }
+            catch (Exception)
+            {
+                // Log exception
+                return StatusCode(500, new { error = "An unexpected error occurred." });
+            }
+        }
     }
 }

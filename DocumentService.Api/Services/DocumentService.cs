@@ -5,6 +5,7 @@ using DocumentProcessing.Api.Models;
 using DocumentProcessing.Api.Models.DTOs;
 using DocumentProcessing.Api.Models.Entities;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace DocumentProcessing.Api.Services
 {
@@ -13,6 +14,7 @@ namespace DocumentProcessing.Api.Services
         private readonly ApplicationDbContext _dbContext;
         private readonly long _maxFileSize = 10 * 1024 * 1024; // 10 MB, move to config in production
         private readonly string[] _allowedContentTypes = new[] { "application/pdf", "image/png", "image/jpeg" }; // move to config
+        private readonly string _uploadRoot = "uploads";
 
         public DocumentService(ApplicationDbContext dbContext)
         {
@@ -33,8 +35,19 @@ namespace DocumentProcessing.Api.Services
             var documentId = Guid.NewGuid();
             var now = DateTime.UtcNow;
 
-            // In production, save file to storage and set StoragePath accordingly
-            var storagePath = Path.Combine("uploads", documentId.ToString());
+            // Ensure uploads directory exists
+            var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), _uploadRoot);
+            if (!Directory.Exists(uploadsPath))
+                Directory.CreateDirectory(uploadsPath);
+
+            var storagePath = Path.Combine(_uploadRoot, documentId.ToString());
+            var fullFilePath = Path.Combine(uploadsPath, documentId.ToString());
+
+            // Save file to disk
+            using (var stream = new FileStream(fullFilePath, FileMode.Create))
+            {
+                await request.File.CopyToAsync(stream);
+            }
 
             var document = new Document
             {
@@ -52,13 +65,25 @@ namespace DocumentProcessing.Api.Services
             _dbContext.Documents.Add(document);
             await _dbContext.SaveChangesAsync();
 
-            // File saving to disk/storage is omitted for brevity
-
             return new UploadDocumentResponse
             {
                 DocumentId = documentId,
                 Status = document.Status.ToString()
             };
+        }
+
+        public async Task<(string filePath, string contentType, string fileName)> GetDocumentFileAsync(Guid documentId)
+        {
+            var document = await _dbContext.Documents.FirstOrDefaultAsync(d => d.Id == documentId);
+            if (document == null)
+                throw new FileNotFoundException("Document not found.");
+
+            var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), _uploadRoot);
+            var fullFilePath = Path.Combine(uploadsPath, documentId.ToString());
+            if (!File.Exists(fullFilePath))
+                throw new FileNotFoundException("File not found on disk.");
+
+            return (fullFilePath, document.ContentType, document.FileName);
         }
     }
 }
