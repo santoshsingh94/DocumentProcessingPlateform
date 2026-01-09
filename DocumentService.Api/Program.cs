@@ -1,5 +1,6 @@
 using DocumentProcessing.Api.Models;
 using DocumentProcessing.Api.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
