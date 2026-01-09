@@ -23,10 +23,12 @@
   <ItemGroup>
     <Folder Include="Middlewares\" />
     <Folder Include="Filters\" />
+    <Folder Include="Models\DTOs\" />
     <Folder Include="Configurations\" />
     <Folder Include="Extensions\" />
     <Folder Include="Validators\" />
     <Folder Include="Repositories\" />
+    <Folder Include="Services\" />
   </ItemGroup>
 
 </Project>

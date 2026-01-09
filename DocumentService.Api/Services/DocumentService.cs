@@ -1,12 +1,12 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using DocumentService.Api.Models;
-using DocumentService.Api.Models.DTOs;
-using DocumentService.Api.Models.Entities;
+using DocumentProcessing.Api.Models;
+using DocumentProcessing.Api.Models.DTOs;
+using DocumentProcessing.Api.Models.Entities;
 using Microsoft.AspNetCore.Http;
 
-namespace DocumentService.Api.Services
+namespace DocumentProcessing.Api.Services
 {
     public class DocumentService : IDocumentService
     {

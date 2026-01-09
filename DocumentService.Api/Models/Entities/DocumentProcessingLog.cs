@@ -2,7 +2,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace DocumentService.Api.Models.Entities
+namespace DocumentProcessing.Api.Models.Entities
 {
     public class DocumentProcessingLog
     {

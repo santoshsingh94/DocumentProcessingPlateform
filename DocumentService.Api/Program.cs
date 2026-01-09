@@ -1,6 +1,5 @@
-using DocumentService.Api.Models;
-using DocumentService.Api.Services;
-using Microsoft.EntityFrameworkCore;
+using DocumentProcessing.Api.Models;
+using DocumentProcessing.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,7 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace DocumentService.Api.Models.Entities
+namespace DocumentProcessing.Api.Models.Entities
 {
     public class AuditTrail
     {

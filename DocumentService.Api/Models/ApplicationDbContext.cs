@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using DocumentService.Api.Models.Entities;
+using DocumentProcessing.Api.Models.Entities;
 
-namespace DocumentService.Api.Models
+namespace DocumentProcessing.Api.Models
 {
     public class ApplicationDbContext : DbContext
     {

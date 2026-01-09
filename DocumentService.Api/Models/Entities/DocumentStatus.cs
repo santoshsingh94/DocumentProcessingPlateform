@@ -1,4 +1,4 @@
-namespace DocumentService.Api.Models.Entities
+namespace DocumentProcessing.Api.Models.Entities
 {
     public enum DocumentStatus
     {

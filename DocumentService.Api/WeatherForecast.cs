@@ -1,4 +1,4 @@
-namespace DocumentService.Api
+namespace DocumentProcessing.Api
 {
     public class WeatherForecast
     {

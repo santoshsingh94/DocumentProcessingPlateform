@@ -1,6 +1,6 @@
-@DocumentService.Api_HostAddress = http://localhost:5255
+@DocumentProcessing.Api_HostAddress = http://localhost:5255
 
-GET {{DocumentService.Api_HostAddress}}/weatherforecast/
+GET {{DocumentProcessing.Api_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###

@@ -1,6 +1,6 @@
 using System;
 
-namespace DocumentService.Api.Models.DTOs
+namespace DocumentProcessing.Api.Models.DTOs
 {
     public class UploadDocumentResponse
     {

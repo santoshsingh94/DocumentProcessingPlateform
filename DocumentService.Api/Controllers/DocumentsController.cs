@@ -1,10 +1,10 @@
 using System;
 using System.Threading.Tasks;
-using DocumentService.Api.Models.DTOs;
-using DocumentService.Api.Services;
+using DocumentProcessing.Api.Models.DTOs;
+using DocumentProcessing.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DocumentService.Api.Controllers
+namespace DocumentProcessing.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
