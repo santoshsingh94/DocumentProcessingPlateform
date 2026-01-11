@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using DocumentProcessing.Api.Models.DTOs;
 using DocumentProcessing.Api.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -54,6 +52,15 @@ namespace DocumentProcessing.Api.Controllers
                 // Log exception
                 return StatusCode(500, new { error = "An unexpected error occurred." });
             }
+        }
+
+        [HttpGet("{documentId}/status")]
+        public async Task<IActionResult> GetStatus(Guid documentId)
+        {
+            var status = await _documentService.GetDocumentStatusAsync(documentId);
+            if (status == null)
+                return NotFound(new { error = "Document not found." });
+            return Ok(status);
         }
     }
 }

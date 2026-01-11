@@ -9,5 +9,6 @@ namespace DocumentProcessing.Api.Services
     {
         Task<UploadDocumentResponse> UploadDocumentAsync(UploadDocumentRequest request);
         Task<(string filePath, string contentType, string fileName)> GetDocumentFileAsync(Guid documentId);
+        Task<DocumentStatusResponse> GetDocumentStatusAsync(Guid documentId);
     }
 }

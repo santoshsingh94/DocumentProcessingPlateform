@@ -1,24 +1,25 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
 using DocumentProcessing.Api.Models;
 using DocumentProcessing.Api.Models.DTOs;
 using DocumentProcessing.Api.Models.Entities;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace DocumentProcessing.Api.Services
 {
     public class DocumentService : IDocumentService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly IDistributedCache _cache;
         private readonly long _maxFileSize = 10 * 1024 * 1024; // 10 MB, move to config in production
         private readonly string[] _allowedContentTypes = new[] { "application/pdf", "image/png", "image/jpeg" }; // move to config
         private readonly string _uploadRoot = "uploads";
+        private readonly DistributedCacheEntryOptions _cacheOptions = new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) };
 
-        public DocumentService(ApplicationDbContext dbContext)
+        public DocumentService(ApplicationDbContext dbContext, IDistributedCache cache)
         {
             _dbContext = dbContext;
+            _cache = cache;
         }
 
         public async Task<UploadDocumentResponse> UploadDocumentAsync(UploadDocumentRequest request)
@@ -84,6 +85,46 @@ namespace DocumentProcessing.Api.Services
                 throw new FileNotFoundException("File not found on disk.");
 
             return (fullFilePath, document.ContentType, document.FileName);
+        }
+
+        public async Task<DocumentStatusResponse> GetDocumentStatusAsync(Guid documentId)
+        {
+            var cacheKey = $"document:status:{documentId}";
+            try
+            {
+                var cached = await _cache.GetStringAsync(cacheKey);
+                if (!string.IsNullOrEmpty(cached))
+                {
+                    return JsonSerializer.Deserialize<DocumentStatusResponse>(cached);
+                }
+            }
+            catch
+            {
+                // Redis unavailable, fallback to DB
+            }
+
+            var document = await _dbContext.Documents.AsNoTracking().FirstOrDefaultAsync(d => d.Id == documentId);
+            if (document == null)
+                return null;
+
+            var response = new DocumentStatusResponse
+            {
+                DocumentId = document.Id,
+                Status = document.Status.ToString(),
+                LastUpdatedAt = document.UpdatedAt
+            };
+
+            try
+            {
+                var serialized = JsonSerializer.Serialize(response);
+                await _cache.SetStringAsync(cacheKey, serialized, _cacheOptions);
+            }
+            catch
+            {
+                // Redis unavailable, skip caching
+            }
+
+            return response;
         }
     }
 }
