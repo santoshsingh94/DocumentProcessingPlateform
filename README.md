@@ -11,7 +11,6 @@ This project simulates real-world systems used in **banking, compliance, insuran
 - Demonstrate **senior backend engineering skills**
 - Design for **scalability, resilience, and failure handling**
 - Apply **clean architecture and separation of concerns**
-- Be **interview-ready** for Senior Software Engineer / Backend roles (₹18–25 LPA)
 
 ---
 
