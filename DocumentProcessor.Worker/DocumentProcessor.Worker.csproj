@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Worker">
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -9,5 +9,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="RabbitMQ.Client" Version="6.8.1" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DocumentService.Api\DocumentProcessing.Api.csproj" />
+    <ProjectReference Include="..\DocumentProcessing.Shared\DocumentProcessing.Shared.csproj" />
+  </ItemGroup>
+
 </Project>

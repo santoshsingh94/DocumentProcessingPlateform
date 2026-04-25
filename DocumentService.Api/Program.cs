@@ -1,3 +1,5 @@
+using DocumentProcessing.Api.Configuration;
+using DocumentProcessing.Api.Messaging;
 using DocumentProcessing.Api.Models;
 using DocumentProcessing.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -15,8 +17,7 @@ builder.Services.AddSwaggerGen();
 // Register DBContext
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register distributed cache (Redis). Ensure you have a "Redis" connection string in configuration.
-// For local/dev you can still use AddDistributedMemoryCache(). In production prefer Redis.
+// Register Redis or fallback to memory
 var redisConnection = builder.Configuration.GetConnectionString("Redis");
 if (!string.IsNullOrEmpty(redisConnection))
 {
@@ -28,9 +29,12 @@ if (!string.IsNullOrEmpty(redisConnection))
 }
 else
 {
-    // Fallback to in-memory distributed cache when Redis connection string is not provided
     builder.Services.AddDistributedMemoryCache();
 }
+
+// Bind RabbitMQ options and register publisher
+builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"));
+builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
 
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 

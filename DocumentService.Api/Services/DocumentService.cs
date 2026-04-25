@@ -1,6 +1,9 @@
+using DocumentProcessing.Api.Configuration;
+using DocumentProcessing.Api.Messaging;
 using DocumentProcessing.Api.Models;
 using DocumentProcessing.Api.Models.DTOs;
 using DocumentProcessing.Api.Models.Entities;
+using DocumentProcessing.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
@@ -11,15 +14,19 @@ namespace DocumentProcessing.Api.Services
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IDistributedCache _cache;
+        private readonly IMessagePublisher _publisher;
+        private readonly ILogger<DocumentService> _logger;
         private readonly long _maxFileSize = 10 * 1024 * 1024; // 10 MB, move to config in production
         private readonly string[] _allowedContentTypes = new[] { "application/pdf", "image/png", "image/jpeg" }; // move to config
         private readonly string _uploadRoot = "uploads";
         private readonly DistributedCacheEntryOptions _cacheOptions = new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) };
 
-        public DocumentService(ApplicationDbContext dbContext, IDistributedCache cache)
+        public DocumentService(ApplicationDbContext dbContext, IDistributedCache cache, IMessagePublisher publisher, ILogger<DocumentService> logger)
         {
             _dbContext = dbContext;
             _cache = cache;
+            _publisher = publisher;
+            _logger = logger;
         }
 
         public async Task<UploadDocumentResponse> UploadDocumentAsync(UploadDocumentRequest request)
@@ -66,11 +73,33 @@ namespace DocumentProcessing.Api.Services
             _dbContext.Documents.Add(document);
             await _dbContext.SaveChangesAsync();
 
+            // Publish event asynchronously; do not block or fail the request if publishing fails
+            _ = PublishDocumentUploadedEventAsync(document);
+
             return new UploadDocumentResponse
             {
                 DocumentId = documentId,
                 Status = document.Status.ToString()
             };
+        }
+
+        private async Task PublishDocumentUploadedEventAsync(Document document)
+        {
+            try
+            {
+                var @event = new DocumentUploadedEvent
+                {
+                    DocumentId = document.Id,
+                    FileName = document.FileName,
+                    UploadedAt = document.CreatedAt
+                };
+
+                await _publisher.PublishAsync(@event);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish DocumentUploadedEvent for document {DocumentId}", document.Id);
+            }
         }
 
         public async Task<(string filePath, string contentType, string fileName)> GetDocumentFileAsync(Guid documentId)
