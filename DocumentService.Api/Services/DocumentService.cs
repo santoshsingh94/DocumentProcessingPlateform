@@ -18,15 +18,16 @@ namespace DocumentProcessing.Api.Services
         private readonly ILogger<DocumentService> _logger;
         private readonly long _maxFileSize = 10 * 1024 * 1024; // 10 MB, move to config in production
         private readonly string[] _allowedContentTypes = new[] { "application/pdf", "image/png", "image/jpeg" }; // move to config
-        private readonly string _uploadRoot = "uploads";
         private readonly DistributedCacheEntryOptions _cacheOptions = new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) };
+        private readonly string _storageBasePath;
 
-        public DocumentService(ApplicationDbContext dbContext, IDistributedCache cache, IMessagePublisher publisher, ILogger<DocumentService> logger)
+        public DocumentService(ApplicationDbContext dbContext, IDistributedCache cache, IMessagePublisher publisher, ILogger<DocumentService> logger, IConfiguration configuration)
         {
             _dbContext = dbContext;
             _cache = cache;
             _publisher = publisher;
             _logger = logger;
+            _storageBasePath = configuration["DocumentStorage:BasePath"] ?? Path.Combine(Directory.GetCurrentDirectory(), "uploads");
         }
 
         public async Task<UploadDocumentResponse> UploadDocumentAsync(UploadDocumentRequest request)
@@ -44,11 +45,11 @@ namespace DocumentProcessing.Api.Services
             var now = DateTime.UtcNow;
 
             // Ensure uploads directory exists
-            var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), _uploadRoot);
+            var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), _storageBasePath);
             if (!Directory.Exists(uploadsPath))
                 Directory.CreateDirectory(uploadsPath);
 
-            var storagePath = Path.Combine(_uploadRoot, documentId.ToString());
+            var storagePath = Path.Combine(_storageBasePath, documentId.ToString());
             var fullFilePath = Path.Combine(uploadsPath, documentId.ToString());
 
             // Save file to disk
@@ -108,7 +109,7 @@ namespace DocumentProcessing.Api.Services
             if (document == null)
                 throw new FileNotFoundException("Document not found.");
 
-            var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), _uploadRoot);
+            var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), _storageBasePath);
             var fullFilePath = Path.Combine(uploadsPath, documentId.ToString());
             if (!File.Exists(fullFilePath))
                 throw new FileNotFoundException("File not found on disk.");
