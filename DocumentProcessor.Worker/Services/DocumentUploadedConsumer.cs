@@ -17,14 +17,23 @@ namespace DocumentProcessor.Worker.Services
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<DocumentUploadedConsumer> _logger;
         private readonly RabbitMqOptions _options;
+        private readonly IOcrService _ocrService;
+        private readonly IConfiguration _configuration;
         private IConnection? _connection;
         private IModel? _channel;
 
-        public DocumentUploadedConsumer(IServiceProvider serviceProvider, IOptions<RabbitMqOptions> options, ILogger<DocumentUploadedConsumer> logger)
+        public DocumentUploadedConsumer(
+            IServiceProvider serviceProvider, 
+            IOptions<RabbitMqOptions> options, 
+            ILogger<DocumentUploadedConsumer> logger,
+            IOcrService ocrService,
+            IConfiguration configuration)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
             _options = options.Value;
+            _ocrService = ocrService;
+            _configuration = configuration;
             InitializeRabbitMqListener();
         }
 
@@ -85,11 +94,57 @@ namespace DocumentProcessor.Worker.Services
                         document.UpdatedAt = DateTime.UtcNow;
                         await db.SaveChangesAsync(stoppingToken);
 
-                        // Simulate processing
-                        await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+                        // Resolve full file path
+                        var fullFilePath = Path.IsPathRooted(document.StoragePath)
+                            ? document.StoragePath
+                            : Path.Combine(Directory.GetCurrentDirectory(), document.StoragePath);
+
+                        if (!File.Exists(fullFilePath))
+                        {
+                            _logger.LogError("Document file not found at path: {Path} for document {DocumentId}", 
+                                fullFilePath, @event.DocumentId);
+                            document.Status = DocumentProcessing.Api.Models.Entities.DocumentStatus.Failed;
+                            await db.SaveChangesAsync(stoppingToken);
+                            _channel.BasicAck(ea.DeliveryTag, false);
+                            return;
+                        }
+
+                        // Perform OCR extraction page by page
+                        _logger.LogInformation("Starting OCR for document {DocumentId} at {Path}", 
+                            @event.DocumentId, fullFilePath);
+
+                        var pageTexts = await _ocrService.ExtractTextByPageAsync(fullFilePath, stoppingToken);
+                        
+                        if (pageTexts == null || pageTexts.Count == 0)
+                        {
+                            _logger.LogWarning(
+                                "OCR returned no text for document {DocumentId}. " +
+                                "Check Worker logs for errors. File: {Path}", 
+                                @event.DocumentId, 
+                                fullFilePath);
+                        }
+                        
+                        // Save each page content to DocumentContent table
+                        foreach (var (pageNumber, content) in pageTexts)
+                        {
+                            var documentContent = new DocumentProcessing.Api.Models.Entities.DocumentContent
+                            {
+                                Id = Guid.NewGuid(),
+                                DocumentId = document.Id,
+                                PageNumber = pageNumber,
+                                Content = content,
+                                CreatedAt = DateTime.UtcNow
+                            };
+                            
+                            db.DocumentContents.Add(documentContent);
+                        }
 
                         document.Status = DocumentProcessing.Api.Models.Entities.DocumentStatus.Completed;
                         document.UpdatedAt = DateTime.UtcNow;
+
+                        _logger.LogInformation("OCR completed for document {DocumentId}. Processed {PageCount} page(s)", 
+                            @event.DocumentId, pageTexts.Count);
+
                         await db.SaveChangesAsync(stoppingToken);
                     }
 

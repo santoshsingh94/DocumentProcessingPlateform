@@ -14,6 +14,8 @@ builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("Ra
 builder.Services.AddDbContext<DocumentProcessing.Api.Models.ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Register OCR service
+builder.Services.AddSingleton<IOcrService, TesseractOcrService>();
 
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddHostedService<DocumentUploadedConsumer>();

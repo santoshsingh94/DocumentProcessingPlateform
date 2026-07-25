@@ -102,6 +102,35 @@ namespace DocumentProcessing.Api.Migrations
                     b.ToTable("Documents");
                 });
 
+            modelBuilder.Entity("DocumentProcessing.Api.Models.Entities.DocumentContent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("PageNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId", "PageNumber")
+                        .IsUnique();
+
+                    b.ToTable("DocumentContents");
+                });
+
             modelBuilder.Entity("DocumentProcessing.Api.Models.Entities.DocumentProcessingLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -135,6 +164,17 @@ namespace DocumentProcessing.Api.Migrations
                     b.ToTable("DocumentProcessingLogs");
                 });
 
+            modelBuilder.Entity("DocumentProcessing.Api.Models.Entities.DocumentContent", b =>
+                {
+                    b.HasOne("DocumentProcessing.Api.Models.Entities.Document", "Document")
+                        .WithMany("DocumentContents")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Document");
+                });
+
             modelBuilder.Entity("DocumentProcessing.Api.Models.Entities.DocumentProcessingLog", b =>
                 {
                     b.HasOne("DocumentProcessing.Api.Models.Entities.Document", "Document")
@@ -148,6 +188,8 @@ namespace DocumentProcessing.Api.Migrations
 
             modelBuilder.Entity("DocumentProcessing.Api.Models.Entities.Document", b =>
                 {
+                    b.Navigation("DocumentContents");
+
                     b.Navigation("ProcessingLogs");
                 });
 #pragma warning restore 612, 618

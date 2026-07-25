@@ -33,5 +33,7 @@ namespace DocumentProcessing.Api.Models.Entities
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<DocumentProcessingLog> ProcessingLogs { get; set; }
+        
+        public ICollection<DocumentContent> DocumentContents { get; set; }
     }
 }

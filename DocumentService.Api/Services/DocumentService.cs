@@ -49,8 +49,12 @@ namespace DocumentProcessing.Api.Services
             if (!Directory.Exists(uploadsPath))
                 Directory.CreateDirectory(uploadsPath);
 
-            var storagePath = Path.Combine(_storageBasePath, documentId.ToString());
-            var fullFilePath = Path.Combine(uploadsPath, documentId.ToString());
+            // Preserve file extension for proper image format detection
+            var fileExtension = Path.GetExtension(request.File.FileName);
+            var fileNameWithExtension = $"{documentId}{fileExtension}";
+            
+            var storagePath = Path.Combine(_storageBasePath, fileNameWithExtension);
+            var fullFilePath = Path.Combine(uploadsPath, fileNameWithExtension);
 
             // Save file to disk
             using (var stream = new FileStream(fullFilePath, FileMode.Create))
@@ -110,7 +114,10 @@ namespace DocumentProcessing.Api.Services
                 throw new FileNotFoundException("Document not found.");
 
             var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), _storageBasePath);
-            var fullFilePath = Path.Combine(uploadsPath, documentId.ToString());
+            
+            // StoragePath now includes the full filename with extension
+            var fullFilePath = Path.Combine(Directory.GetCurrentDirectory(), document.StoragePath);
+            
             if (!File.Exists(fullFilePath))
                 throw new FileNotFoundException("File not found on disk.");
 

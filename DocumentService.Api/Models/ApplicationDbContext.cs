@@ -13,6 +13,7 @@ namespace DocumentProcessing.Api.Models
         public DbSet<Document> Documents { get; set; }
         public DbSet<DocumentProcessingLog> DocumentProcessingLogs { get; set; }
         public DbSet<AuditTrail> AuditTrails { get; set; }
+        public DbSet<DocumentContent> DocumentContents { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -29,6 +30,10 @@ namespace DocumentProcessing.Api.Models
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.OwnerUserId);
                 entity.HasMany(e => e.ProcessingLogs)
+                      .WithOne(e => e.Document)
+                      .HasForeignKey(e => e.DocumentId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasMany(e => e.DocumentContents)
                       .WithOne(e => e.Document)
                       .HasForeignKey(e => e.DocumentId)
                       .OnDelete(DeleteBehavior.Cascade);
@@ -52,6 +57,16 @@ namespace DocumentProcessing.Api.Models
                 entity.Property(e => e.Action).IsRequired();
                 entity.Property(e => e.PerformedBy).IsRequired();
                 entity.Property(e => e.PerformedAt).HasDefaultValueSql("GETUTCDATE()");
+            });
+
+            // DocumentContent
+            modelBuilder.Entity<DocumentContent>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.DocumentId).IsRequired();
+                entity.Property(e => e.PageNumber).IsRequired();
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.HasIndex(e => new { e.DocumentId, e.PageNumber }).IsUnique();
             });
         }
     }
