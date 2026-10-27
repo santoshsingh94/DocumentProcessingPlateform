@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: doc-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Password123
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - doc-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: doc-rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - doc-network
+
+  api:
+    build:
+      context: .
+      dockerfile: DocumentService.Api/Dockerfile
+    container_name: doc-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=DocProcessing;User Id=sa;Password=YourStrong@Password123;TrustServerCertificate=True
+      - ConnectionStrings__Redis=redis-16458.crce179.ap-south-1-1.ec2.cloud.redislabs.com:16458,password=your-redis-password
+      - RabbitMq__HostName=rabbitmq
+      - RabbitMq__UserName=guest
+      - RabbitMq__Password=guest
+      - DocumentStorage__BasePath=/app/uploads
+    ports:
+      - "5000:80"
+      - "5001:443"
+    volumes:
+      - document-uploads:/app/uploads
+    depends_on:
+      sqlserver:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - doc-network
+
+  worker:
+    build:
+      context: .
+      dockerfile: DocumentProcessor.Worker/Dockerfile
+    container_name: doc-worker
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=DocProcessing;User Id=sa;Password=YourStrong@Password123;TrustServerCertificate=True
+      - RabbitMq__HostName=rabbitmq
+      - RabbitMq__UserName=guest
+      - RabbitMq__Password=guest
+      - Tesseract__DataPath=/app/tessdata
+    volumes:
+      - document-uploads:/app/uploads
+    depends_on:
+      sqlserver:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - doc-network
+
+volumes:
+  sqlserver-data:
+  document-uploads:
+
+networks:
+  doc-network:
+    driver: bridge

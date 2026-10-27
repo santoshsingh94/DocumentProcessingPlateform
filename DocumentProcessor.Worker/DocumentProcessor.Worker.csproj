@@ -20,4 +20,12 @@
     <ProjectReference Include="..\DocumentProcessing.Shared\DocumentProcessing.Shared.csproj" />
   </ItemGroup>
 
+  <!-- Remove API's appsettings files from publish output to avoid conflicts -->
+  <Target Name="RemoveDuplicateAppSettings" AfterTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(FileName)%(Extension)' == 'appsettings.json' and $([System.String]::Copy('%(Identity)').Contains('DocumentService.Api'))" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(FileName)' == 'appsettings.Development' and '%(Extension)' == '.json' and $([System.String]::Copy('%(Identity)').Contains('DocumentService.Api'))" />
+    </ItemGroup>
+  </Target>
+
 </Project>
